@@ -7,8 +7,9 @@ from statistics import mean
 from tempfile import TemporaryDirectory
 from PIL import Image
 
-
-COLOUR_DIFFERENCE_THRESHOLD = 10.0
+# The threshold at which the function will consider the colours as equivalent
+# Lower value = more precise
+COLOUR_DIFFERENCE_THRESHOLD = 5.0
 
 def calcColourDifference(rgb1:tuple, rgb2:tuple) -> float:
     '''
@@ -25,7 +26,6 @@ def calcColourDifference(rgb1:tuple, rgb2:tuple) -> float:
     dist_g = rgb1[1] - rgb2[1]
     dist_b = rgb1[2] - rgb2[2]
     return sqrt((dist_r * dist_r) + (dist_g * dist_g) + (dist_b * dist_b))
-
 
 def matchColour(imageFilename:Path, references:dict) -> string:
     '''
@@ -61,12 +61,14 @@ def matchColour(imageFilename:Path, references:dict) -> string:
             mean(pixel[1] for pixel in pixels),
             mean(pixel[2] for pixel in pixels))
     
+    # Work out which colour is matched
     for ref in references:
         referenceRgb = (ref['r'], ref['g'], ref['b'])
         if calcColourDifference(rgb, referenceRgb) < COLOUR_DIFFERENCE_THRESHOLD:
             return ref['name']
     
-    raise RuntimeError('Does not match any color in the references.')
+    # No colour has been matched - throw error
+    raise RuntimeError('Does not match any colour in the references.')
 
 def downloadImage(url:string, path:Path):
     '''
@@ -106,4 +108,5 @@ def matchColourFromUrl(url:string, referencesPath:string) -> string:
         downloadImage(url, imageFilename)
         
         # Perform the colour match and return 
-        return matchColour(imageFilename, references)
+        colourMatchResult = matchColour(imageFilename, references)   
+        return json.dumps ({'result':colourMatchResult, 'statusCode':200})
